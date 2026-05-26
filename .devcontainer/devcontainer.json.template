@@ -1,0 +1,172 @@
+{
+  // =====================================================================
+  // Claude Code Devcontainer Template
+  // =====================================================================
+  //
+  // Replace all {{PLACEHOLDER}} values with your project-specific paths.
+  //
+  // Placeholders:
+  //   {{CONTAINER_NAME}}     - Display name (e.g., "My Project - Claude Code")
+  //   {{WORKSPACE_NAME}}     - Container workspace dir name (e.g., "myproject")
+  //   {{WORKSPACE_LAYOUT}}   - "worktree" or "standard" (see README)
+  //   {{HOST_CODE_DIR}}      - Absolute path to your code on the host
+  //   {{HOST_CLAUDE_SHARED}} - Path to shared Claude Code components on host
+  //   {{HOST_CLAUDE_WS}}     - Path to workspace-specific Claude components on host (optional)
+  //   {{HOST_SERENA_DIR}}    - Path to .serena config on host (optional)
+  //   {{HOST_OUTPUT_DIR}}    - Path for Claude output files on host (optional)
+  //
+  // =====================================================================
+
+  "name": "{{CONTAINER_NAME}}",
+  "workspaceFolder": "/workspaces/{{WORKSPACE_NAME}}",
+
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "WORKSPACE_DIR": "/workspaces/{{WORKSPACE_NAME}}",
+      "WORKSPACE_LAYOUT": "{{WORKSPACE_LAYOUT}}",
+      "INSTALL_PLAYWRIGHT": "false"
+    }
+  },
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false,
+      "installDockerBuildx": false,
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Anthropic.claude-code"
+      ]
+    }
+  },
+
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "WORKSPACE_DIR": "/workspaces/{{WORKSPACE_NAME}}",
+    "WORKSPACE_LAYOUT": "{{WORKSPACE_LAYOUT}}",
+    // Worktree layout only (remove if using standard layout):
+    "WORKTREE_MAIN_DIR": "/workspaces/{{WORKSPACE_NAME}}/main",
+    "WORKTREES_DIR": "/workspaces/{{WORKSPACE_NAME}}/worktrees",
+    // Serena MCP:
+    "SERENA_MCP_PORT": "9200",
+    // Docker (for TestContainers):
+    "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal",
+    // Model aliases (used by shell aliases and scripts):
+    "HAIKU_MODEL": "claude-haiku-4-5-20251001",
+    "SONNET_MODEL": "claude-sonnet-4-6",
+    "OPUS_MODEL": "claude-opus-4-6[1m]"
+  },
+
+  "runArgs": ["--network=host"],
+  "remoteUser": "node",
+
+  "mounts": [
+    // ===========================================
+    // WORKSPACE STRUCTURE
+    // ===========================================
+    //
+    // Standard layout:
+    //   /workspaces/{{WORKSPACE_NAME}}/
+    //   ├── .claude/           <- Claude Code config (symlinked)
+    //   ├── .devcontainer/     <- This config
+    //   ├── src/               <- Your code (bound from host)
+    //   └── claude_files/      <- Claude output files
+    //
+    // Worktree layout:
+    //   /workspaces/{{WORKSPACE_NAME}}/
+    //   ├── main/              <- Code files (bound from host)
+    //   ├── worktrees/         <- Git worktrees (local, for parallel tasks)
+    //   ├── .git/              <- Bare git database (local)
+    //   ├── .claude/           <- Claude Code config (symlinked)
+    //   ├── .devcontainer/     <- This config
+    //   └── claude_files/      <- Claude output files
+
+    // ===========================================
+    // SHARED VOLUMES
+    // ===========================================
+    "source=npm-cache,target=/home/node/.npm,type=volume",
+    "source=npm-global-packages,target=/usr/lib/node_modules,type=volume",
+    "source=claude-mcp-servers,target=/tmp/mcp-servers,type=volume",
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+
+    // CRITICAL: This named volume is how multiple workspaces share a single
+    // Claude Code subscription. All containers using the same volume name
+    // share auth credentials, conversation history (.jsonl transcripts),
+    // session reset state, and auto-memory. The usage estimator scans all
+    // transcripts in this volume, giving you a unified usage % across every
+    // workspace consuming the same subscription budget.
+    //
+    // To isolate a workspace (different account), use a different volume name.
+    "source=claude-code-home,target=/home/node/.claude,type=volume",
+
+    // ===========================================
+    // DEVCONTAINER FILES
+    // ===========================================
+    "source=${localWorkspaceFolder}/.devcontainer/Dockerfile,target=${containerWorkspaceFolder}/.devcontainer/Dockerfile,type=bind",
+    "source=${localWorkspaceFolder}/.devcontainer/scripts,target=${containerWorkspaceFolder}/.devcontainer/scripts,type=bind",
+
+    // ===========================================
+    // SHARED CLAUDE CODE COMPONENTS
+    // ===========================================
+    // These are mounted to /tmp/claude-shared/ and symlinked into .claude/
+    // by the post-create script. Shared across all workspaces.
+    //
+    // Point {{HOST_CLAUDE_SHARED}} to a directory containing any/all of:
+    //   settings.json, commands/, agents/, rules/, hooks/, skills/, statusline/
+    //
+    "source={{HOST_CLAUDE_SHARED}}/settings.json,target=${containerWorkspaceFolder}/.claude/settings.json,type=bind",
+    "source={{HOST_CLAUDE_SHARED}}/commands,target=/tmp/claude-shared/commands,type=bind",
+    "source={{HOST_CLAUDE_SHARED}}/agents,target=/tmp/claude-shared/agents,type=bind",
+    "source={{HOST_CLAUDE_SHARED}}/rules,target=/tmp/claude-shared/rules,type=bind",
+    "source={{HOST_CLAUDE_SHARED}}/hooks,target=/tmp/claude-shared/hooks,type=bind",
+    "source={{HOST_CLAUDE_SHARED}}/skills,target=/tmp/claude-shared/skills,type=bind",
+    "source={{HOST_CLAUDE_SHARED}}/statusline,target=/tmp/claude-shared/statusline,type=bind",
+
+    // ===========================================
+    // WORKSPACE-SPECIFIC CLAUDE COMPONENTS (optional)
+    // ===========================================
+    // These override or extend shared components for this workspace only.
+    // Mounted to /tmp/claude-workspace/ and symlinked as ~WORKSPACE/ subdirs.
+    //
+    // Remove this section if you don't need per-workspace overrides.
+    //
+    // "source={{HOST_CLAUDE_WS}}/commands,target=/tmp/claude-workspace/commands,type=bind",
+    // "source={{HOST_CLAUDE_WS}}/agents,target=/tmp/claude-workspace/agents,type=bind",
+    // "source={{HOST_CLAUDE_WS}}/rules,target=/tmp/claude-workspace/rules,type=bind",
+    // "source={{HOST_CLAUDE_WS}}/hooks,target=/tmp/claude-workspace/hooks,type=bind",
+    // "source={{HOST_CLAUDE_WS}}/skills,target=/tmp/claude-workspace/skills,type=bind",
+
+    // ===========================================
+    // SERENA CONFIG (optional)
+    // ===========================================
+    // "source={{HOST_SERENA_DIR}},target=${containerWorkspaceFolder}/main/.serena,type=bind,consistency=cached",
+
+    // ===========================================
+    // CODE FILES
+    // ===========================================
+    // For standard layout, bind your code root directly:
+    //   "source={{HOST_CODE_DIR}},target=${containerWorkspaceFolder},type=bind,consistency=cached",
+    //
+    // For worktree layout, bind individual dirs/files into main/:
+    //   "source={{HOST_CODE_DIR}}/src,target=${containerWorkspaceFolder}/main/src,type=bind,consistency=cached",
+    //   "source={{HOST_CODE_DIR}}/package.json,target=${containerWorkspaceFolder}/main/package.json,type=bind,consistency=cached",
+    //   ... (add one entry per top-level dir or file)
+    //
+    // NOTE: For worktree layout, do NOT bind .git/ — the container creates
+    // its own bare git repo. Bind only source files and config.
+
+    // ===========================================
+    // CLAUDE OUTPUT FILES (optional)
+    // ===========================================
+    // "source={{HOST_OUTPUT_DIR}},target=${containerWorkspaceFolder}/claude_files,type=bind,consistency=cached"
+  ],
+
+  "postCreateCommand": "sudo chmod +x .devcontainer/scripts/*.sh && bash .devcontainer/scripts/post-create.sh",
+  "postStartCommand": "sudo chmod +x .devcontainer/scripts/*.sh && bash .devcontainer/scripts/post-start.sh"
+}

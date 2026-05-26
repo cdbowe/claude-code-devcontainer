@@ -1,0 +1,82 @@
+{
+  // Minimal Claude Code devcontainer — standard layout, no worktrees, no workspace overrides.
+  // Copy this into your project's .devcontainer/ directory and update the paths below.
+
+  "name": "Sample Project - Claude Code",
+  "workspaceFolder": "/workspaces/myproject",
+
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "WORKSPACE_DIR": "/workspaces/myproject",
+      "WORKSPACE_LAYOUT": "standard",
+      "INSTALL_PLAYWRIGHT": "false"
+    }
+  },
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false,
+      "installDockerBuildx": false,
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Anthropic.claude-code"
+      ]
+    }
+  },
+
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "WORKSPACE_DIR": "/workspaces/myproject",
+    "WORKSPACE_LAYOUT": "standard",
+    "SERENA_MCP_PORT": "9200",
+    "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal",
+    "HAIKU_MODEL": "claude-haiku-4-5-20251001",
+    "SONNET_MODEL": "claude-sonnet-4-6",
+    "OPUS_MODEL": "claude-opus-4-6[1m]"
+  },
+
+  "runArgs": ["--network=host"],
+  "remoteUser": "node",
+
+  "mounts": [
+    // Shared volumes (persistent across rebuilds)
+    "source=npm-cache,target=/home/node/.npm,type=volume",
+    "source=npm-global-packages,target=/usr/lib/node_modules,type=volume",
+    "source=claude-mcp-servers,target=/tmp/mcp-servers,type=volume",
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+
+    // Shared subscription volume: all containers using this volume name share
+    // auth, conversation history, session state, and usage tracking.
+    // Use a different name to isolate a workspace on a different account.
+    "source=claude-code-home,target=/home/node/.claude,type=volume",
+
+    // Devcontainer files
+    "source=${localWorkspaceFolder}/.devcontainer/Dockerfile,target=${containerWorkspaceFolder}/.devcontainer/Dockerfile,type=bind",
+    "source=${localWorkspaceFolder}/.devcontainer/scripts,target=${containerWorkspaceFolder}/.devcontainer/scripts,type=bind",
+
+    // Claude Code components (shared)
+    // Update this path to your claude-code-tools .claude/ directory on the host.
+    // Example: "source=/home/you/claude-code-tools/.claude/commands,target=..."
+    //
+    // "source=${localWorkspaceFolder}/../claude-config/settings.json,target=${containerWorkspaceFolder}/.claude/settings.json,type=bind",
+    // "source=${localWorkspaceFolder}/../claude-config/commands,target=/tmp/claude-shared/commands,type=bind",
+    // "source=${localWorkspaceFolder}/../claude-config/agents,target=/tmp/claude-shared/agents,type=bind",
+    // "source=${localWorkspaceFolder}/../claude-config/rules,target=/tmp/claude-shared/rules,type=bind",
+    // "source=${localWorkspaceFolder}/../claude-config/hooks,target=/tmp/claude-shared/hooks,type=bind",
+    // "source=${localWorkspaceFolder}/../claude-config/skills,target=/tmp/claude-shared/skills,type=bind",
+    // "source=${localWorkspaceFolder}/../claude-config/statusline,target=/tmp/claude-shared/statusline,type=bind",
+
+    // Your code (bind the project root)
+    "source=${localWorkspaceFolder}/../myproject,target=${containerWorkspaceFolder},type=bind,consistency=cached"
+  ],
+
+  "postCreateCommand": "sudo chmod +x .devcontainer/scripts/*.sh && bash .devcontainer/scripts/post-create.sh",
+  "postStartCommand": "sudo chmod +x .devcontainer/scripts/*.sh && bash .devcontainer/scripts/post-start.sh"
+}
