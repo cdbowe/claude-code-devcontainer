@@ -49,6 +49,13 @@ start_serena_server
 
 
 ###########################################
+# Start Xvfb (virtual display for Playwright Chromium)
+###########################################
+
+start_xvfb
+
+
+###########################################
 # Source workspace-specific post-start script
 ###########################################
 

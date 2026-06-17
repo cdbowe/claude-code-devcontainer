@@ -154,6 +154,7 @@ setup_common_aliases() {
     add_alias_if_not_exists "ccu" "fetch_claude_usage"
     add_alias_if_not_exists "cceu" "bash ${WORKSPACE_DIR}/.claude/statusline/est_claude_usage.sh"
     add_alias_if_not_exists "ccue" "cceu"
+    add_alias_if_not_exists "commit-main" "bash ${WORKSPACE_DIR}/.claude/commands/scripts/commit-main.sh"
 
     # PRD utilities
     add_alias_if_not_exists "prd-stat" "bash ${WORKSPACE_DIR}/.claude/commands/prd/scripts/prd-stat.sh"
@@ -458,6 +459,32 @@ start_serena_server() {
     # Use actual command instead of alias (aliases don't work in scripts)
     nohup serena-start > /tmp/serena.log 2>&1 &
     print_ok
+}
+
+######################
+# Xvfb Virtual Display
+######################
+
+start_xvfb() {
+    if ! command -v Xvfb &> /dev/null; then
+        return
+    fi
+
+    echo -n "Starting Xvfb virtual display..."
+
+    if pgrep -x Xvfb > /dev/null 2>&1; then
+        print_ok
+        return
+    fi
+
+    Xvfb :99 -screen 0 1280x720x24 -nolisten tcp > /dev/null 2>&1 &
+    sleep 0.5
+
+    if pgrep -x Xvfb > /dev/null 2>&1; then
+        print_ok
+    else
+        print_warning "Xvfb failed to start"
+    fi
 }
 
 print_serena_help() {
