@@ -246,15 +246,25 @@ verify_mcp_setup() {
 ######################
 
 link_claude_components() {
-    echo "Linking Claude Code components (shared + workspace subfolders)..."
+    echo "Linking Claude Code components (shared + workspace)..."
 
-    # Fix ownership of .claude directory
     sudo chown -R $(id -u):$(id -g) "${WORKSPACE_DIR}/.claude/" 2>/dev/null || true
 
-    # Workspace subfolder name
     WS_SUBFOLDER="~WORKSPACE"
 
-    # Components with workspace subfolder (shared root + workspace override)
+    # Settings: shared → project tier, workspace → local tier
+    rm -f "${WORKSPACE_DIR}/.claude/settings.json" "${WORKSPACE_DIR}/.claude/settings.local.json"
+
+    if [ -f "/tmp/claude-shared/settings.json" ]; then
+        ln -sf "/tmp/claude-shared/settings.json" "${WORKSPACE_DIR}/.claude/settings.json"
+        print_checkmark "Linked .claude/settings.json -> shared (project tier)"
+    fi
+    if [ -f "/tmp/claude-workspace/settings.local.json" ]; then
+        ln -sf "/tmp/claude-workspace/settings.local.json" "${WORKSPACE_DIR}/.claude/settings.local.json"
+        print_checkmark "Linked .claude/settings.local.json -> workspace (local tier)"
+    fi
+
+    # Component directories: shared root + workspace override via ~WORKSPACE symlink
     # Skills excluded — handled separately for Claude Code flat discovery
     for component in "commands" "agents" "rules" "hooks"; do
         component_path="${WORKSPACE_DIR}/.claude/${component}"
@@ -273,22 +283,21 @@ link_claude_components() {
         fi
     done
 
-    # Skills: split into two discovery paths (Claude Code requires flat structure)
-    #   Project-level: .claude/skills/ -> workspace skills (discovered by Claude Code)
-    #   Personal-level: ~/.claude/skills/ -> shared skills (discovered by Claude Code)
-    #   Browsability:   .claude/~SHARED/skills/ -> shared skills (visible in VS Code)
+    # Skills: two discovery paths (Claude Code requires flat structure)
+    #   Project-level: .claude/skills/ -> workspace skills
+    #   Personal-level: ~/.claude/skills/ -> shared skills
+    #   Browsability:   .claude/~SHARED/skills/ -> shared skills (VS Code explorer)
     rm -rf "${WORKSPACE_DIR}/.claude/skills"
-    # Clean up stale ~WORKSPACE symlink from shared skills if present
     find "/tmp/claude-shared/skills" -maxdepth 1 -type l -lname "/tmp/claude-workspace/skills" -delete 2>/dev/null || true
 
     if [ -d "/tmp/claude-workspace/skills" ]; then
         ln -sf "/tmp/claude-workspace/skills" "${WORKSPACE_DIR}/.claude/skills"
-        print_checkmark "Linked .claude/skills/ -> /tmp/claude-workspace/skills (project-level discovery)"
+        print_checkmark "Linked .claude/skills/ -> /tmp/claude-workspace/skills (project-level)"
     fi
 
     if [ -d "/tmp/claude-shared/skills" ]; then
         ln -sfn "/tmp/claude-shared/skills" "/home/node/.claude/skills"
-        print_checkmark "Linked ~/.claude/skills/ -> /tmp/claude-shared/skills (personal-level discovery)"
+        print_checkmark "Linked ~/.claude/skills/ -> /tmp/claude-shared/skills (personal-level)"
 
         # Browsability symlink so shared skills appear in VS Code explorer
         rm -rf "${WORKSPACE_DIR}/.claude/~SHARED"
@@ -301,7 +310,7 @@ link_claude_components() {
     rm -rf "${WORKSPACE_DIR}/.claude/statusline"
     if [ -d "/tmp/claude-shared/statusline" ]; then
         ln -sf "/tmp/claude-shared/statusline" "${WORKSPACE_DIR}/.claude/statusline"
-        print_checkmark "Linked .claude/statusline/ -> /tmp/claude-shared/statusline (shared only)"
+        print_checkmark "Linked .claude/statusline/ -> /tmp/claude-shared/statusline"
     fi
 
     print_ok
