@@ -154,6 +154,8 @@ RUN npm install -g --loglevel=verbose npm@11.10.0
 RUN if [ "$INSTALL_PLAYWRIGHT" = "true" ]; then \
       npm install -g playwright \
       && npx playwright install-deps \
+      && apt-get update && apt-get install -y --no-install-recommends xvfb \
+      && apt-get clean && rm -rf /var/lib/apt/lists/* \
       && npx playwright install chromium firefox msedge; \
     fi
 
