@@ -177,5 +177,5 @@ RUN mkdir -p "$HOME/.local/share" \
 
 USER $USERNAME
 RUN cd $WORKSPACE_DIR
-RUN curl -fsSL https://claude.ai/install.sh | bash -s -- 2.1.129
-# Version history: 2.1.84, 2.1.121, 2.1.129
+RUN curl -fsSL https://claude.ai/install.sh | bash -s -- 2.1.197
+# Version history: 2.1.84, 2.1.121, 2.1.129, 2.1.197
