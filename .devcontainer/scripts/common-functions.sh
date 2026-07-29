@@ -306,6 +306,13 @@ link_claude_components() {
         print_checkmark "Linked .claude/~SHARED/skills/ -> /tmp/claude-shared/skills (browsable)"
     fi
 
+    # CLAUDE.md: shared
+    rm -f "${WORKSPACE_DIR}/.claude/CLAUDE.md"
+    if [ -f "/tmp/claude-shared/CLAUDE.md" ]; then
+        ln -sf "/tmp/claude-shared/CLAUDE.md" "${WORKSPACE_DIR}/.claude/CLAUDE.md"
+        print_checkmark "Linked .claude/CLAUDE.md -> /tmp/claude-shared/CLAUDE.md"
+    fi
+
     # Statusline: shared only
     rm -rf "${WORKSPACE_DIR}/.claude/statusline"
     if [ -d "/tmp/claude-shared/statusline" ]; then
